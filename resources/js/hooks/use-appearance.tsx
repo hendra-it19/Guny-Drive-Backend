@@ -2,15 +2,19 @@ import { useSyncExternalStore } from 'react';
 
 export type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
+export type DashboardTheme = 'kaca' | 'minimal';
 
 export type UseAppearanceReturn = {
     readonly appearance: Appearance;
     readonly resolvedAppearance: ResolvedAppearance;
+    readonly dashboardTheme: DashboardTheme;
     readonly updateAppearance: (mode: Appearance) => void;
+    readonly updateDashboardTheme: (theme: DashboardTheme) => void;
 };
 
 const listeners = new Set<() => void>();
 let currentAppearance: Appearance = 'system';
+let currentDashboardTheme: DashboardTheme = 'kaca';
 
 const prefersDark = (): boolean => {
     if (typeof window === 'undefined') {
@@ -37,11 +41,23 @@ const getStoredAppearance = (): Appearance => {
     return (localStorage.getItem('appearance') as Appearance) || 'system';
 };
 
+const getStoredDashboardTheme = (): DashboardTheme => {
+    if (typeof window === 'undefined') {
+        return 'kaca';
+    }
+
+    const stored = localStorage.getItem('dashboard_theme');
+    return stored === 'minimal' ? 'minimal' : 'kaca';
+};
+
 const isDarkMode = (appearance: Appearance): boolean => {
     return appearance === 'dark' || (appearance === 'system' && prefersDark());
 };
 
-const applyTheme = (appearance: Appearance): void => {
+const applyTheme = (
+    appearance: Appearance,
+    dashboardTheme: DashboardTheme,
+): void => {
     if (typeof document === 'undefined') {
         return;
     }
@@ -50,6 +66,7 @@ const applyTheme = (appearance: Appearance): void => {
 
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', dashboardTheme);
 };
 
 const subscribe = (callback: () => void) => {
@@ -68,7 +85,8 @@ const mediaQuery = (): MediaQueryList | null => {
     return window.matchMedia('(prefers-color-scheme: dark)');
 };
 
-const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
+const handleSystemThemeChange = (): void =>
+    applyTheme(currentAppearance, currentDashboardTheme);
 
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
@@ -80,10 +98,15 @@ export function initializeTheme(): void {
         setCookie('appearance', 'system');
     }
 
-    currentAppearance = getStoredAppearance();
-    applyTheme(currentAppearance);
+    if (!localStorage.getItem('dashboard_theme')) {
+        localStorage.setItem('dashboard_theme', 'kaca');
+        setCookie('dashboard_theme', 'kaca');
+    }
 
-    // Set up system theme change listener
+    currentAppearance = getStoredAppearance();
+    currentDashboardTheme = getStoredDashboardTheme();
+    applyTheme(currentAppearance, currentDashboardTheme);
+
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
@@ -94,22 +117,37 @@ export function useAppearance(): UseAppearanceReturn {
         () => 'system',
     );
 
+    const dashboardTheme: DashboardTheme = useSyncExternalStore(
+        subscribe,
+        () => currentDashboardTheme,
+        () => 'kaca',
+    );
+
     const resolvedAppearance: ResolvedAppearance = isDarkMode(appearance)
         ? 'dark'
         : 'light';
 
     const updateAppearance = (mode: Appearance): void => {
         currentAppearance = mode;
-
-        // Store in localStorage for client-side persistence...
         localStorage.setItem('appearance', mode);
-
-        // Store in cookie for SSR...
         setCookie('appearance', mode);
-
-        applyTheme(mode);
+        applyTheme(mode, currentDashboardTheme);
         notify();
     };
 
-    return { appearance, resolvedAppearance, updateAppearance } as const;
+    const updateDashboardTheme = (theme: DashboardTheme): void => {
+        currentDashboardTheme = theme;
+        localStorage.setItem('dashboard_theme', theme);
+        setCookie('dashboard_theme', theme);
+        applyTheme(currentAppearance, theme);
+        notify();
+    };
+
+    return {
+        appearance,
+        resolvedAppearance,
+        dashboardTheme,
+        updateAppearance,
+        updateDashboardTheme,
+    } as const;
 }

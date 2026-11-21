@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Activity, LayoutGrid, Shield, UsersRound } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,30 +14,41 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as monitoringIndex } from '@/routes/monitoring';
+import { edit as securityEdit } from '@/routes/security';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Ringkasan & Resource',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Pengguna & Storage',
+        href: '/users',
+        icon: UsersRound,
+    },
+    {
+        title: 'API & Monitoring',
+        href: monitoringIndex(),
+        icon: Activity,
     },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Keamanan & Privat',
+        href: securityEdit(),
+        icon: Shield,
     },
 ];
 
 export function AppSidebar() {
+    const admin = Boolean(
+        (usePage().props.auth?.user as { is_admin?: boolean } | undefined)
+            ?.is_admin,
+    );
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -53,7 +64,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={admin ? mainNavItems : []} />
             </SidebarContent>
 
             <SidebarFooter>

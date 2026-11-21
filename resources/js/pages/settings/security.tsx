@@ -1,18 +1,23 @@
 import { Form, Head } from '@inertiajs/react';
+import { Lock } from 'lucide-react';
 import { useRef } from 'react';
+import VaultPassphraseController from '@/actions/App/Http/Controllers/Dashboard/VaultPassphraseController';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
+import ManagePasskeys from '@/components/manage-passkeys';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { formatDateTime } from '@/lib/format';
 import { edit } from '@/routes/security';
-import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
-import ManagePasskeys from '@/components/manage-passkeys';
 
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    vaultConfigured?: boolean;
+    vaultUpdatedAt?: string | null;
 } & ManagePasskeysProps;
 
 export default function Security(props: Props) {
@@ -116,6 +121,67 @@ export default function Security(props: Props) {
                                     Save
                                 </Button>
                             </div>
+                        </>
+                    )}
+                </Form>
+            </div>
+
+            <div className="mt-10 space-y-6 border-t pt-8">
+                <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                        <Lock className="size-4" />
+                    </span>
+                    <Heading
+                        variant="small"
+                        title="Frasa Sandi Folder Privat"
+                        description={
+                            props.vaultConfigured
+                                ? `Sudah aktif · Diperbarui ${formatDateTime(props.vaultUpdatedAt)}. Mengubah frasa sandi langsung mengunci semua sesi privat di perangkat.`
+                                : 'Belum diatur. Tetapkan frasa sandi terpisah untuk membuka Folder Privat dari ponsel.'
+                        }
+                    />
+                </div>
+
+                <Form
+                    {...VaultPassphraseController.update.form()}
+                    options={{ preserveScroll: true }}
+                    resetOnSuccess
+                    resetOnError={['passphrase', 'passphrase_confirmation']}
+                    className="space-y-4"
+                >
+                    {({ errors, processing }) => (
+                        <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="vault_passphrase">
+                                    Frasa sandi baru (minimal 6 karakter)
+                                </Label>
+                                <PasswordInput
+                                    id="vault_passphrase"
+                                    name="passphrase"
+                                    placeholder="Masukkan frasa sandi Folder Privat"
+                                />
+                                <InputError message={errors.passphrase} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="vault_passphrase_confirmation">
+                                    Konfirmasi frasa sandi
+                                </Label>
+                                <PasswordInput
+                                    id="vault_passphrase_confirmation"
+                                    name="passphrase_confirmation"
+                                    placeholder="Ulangi frasa sandi"
+                                />
+                                <InputError
+                                    message={errors.passphrase_confirmation}
+                                />
+                            </div>
+
+                            <Button disabled={processing}>
+                                {props.vaultConfigured
+                                    ? 'Perbarui Frasa Sandi'
+                                    : 'Aktifkan Folder Privat'}
+                            </Button>
                         </>
                     )}
                 </Form>

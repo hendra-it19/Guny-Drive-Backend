@@ -31,6 +31,16 @@ export default function PasskeyVerify({
             },
         }),
         onSuccess: (response) => {
+            if (
+                response.redirect &&
+                new URL(
+                    response.redirect,
+                    window.location.origin,
+                ).pathname.endsWith('/mobile/consent')
+            ) {
+                window.location.assign(response.redirect);
+                return;
+            }
             router.visit(response.redirect ?? '/dashboard');
         },
     });
